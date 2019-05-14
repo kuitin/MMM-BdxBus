@@ -1,0 +1,17 @@
+{
+  "name": "MMM-NesteBussAtB",
+  "version": "0.0.1",
+  "description": "Vis neste avganger fra angitte holdeplasser",
+  "author": "Otto Paulsen",
+  "dependencies": {
+    "font-awesome": "latest",
+    "jsdom": "^15.0.0",
+    "request": "^2.88.0",
+    "soap": "^0.24.0",
+    "xml-js": "^1.6.2",
+    "xml2js": "^0.4.19",
+    "xml2js-xpath": "^0.10.0",
+    "xmldom": "^0.1.27",
+    "xmlhttprequest": "^1.8.0"
+  }
+}
