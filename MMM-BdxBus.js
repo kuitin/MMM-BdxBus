@@ -108,12 +108,6 @@ Module.register("MMM-BdxBus", {
         }
         return stackedBuses;
     },
-
-    getStyles: function () {
-        return [
-            'NesteBussAtB.css'
-        ];
-    },
     
     getColorByDest: function (destination) {
         var result = "";
