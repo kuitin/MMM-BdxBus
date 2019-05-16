@@ -55,8 +55,8 @@ Module.register("MMM-BdxBus", {
     },
 
     openBusConnection: function () {
-        console.log('Sending NESTEBUSSATB_CONFIG with config: ', this.config);
-        this.sendSocketNotification('NESTEBUSSATB_CONFIG', this.config);
+        console.log('Sending BDXBUS_CONFIG with config: ', this.config);
+        this.sendSocketNotification('BDXBUS_CONFIG', this.config);
     },
 
     socketNotificationReceived: function (notification, payload) {
