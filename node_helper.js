@@ -64,22 +64,22 @@ module.exports = NodeHelper.create({
         stops.forEach(function (stopId) {
             var stopBuses = [];
             //console.log("readBuses");
-            self.getAtbStopTimes(config, stopId, function (error, data) {
+            self.getBdxStopTimes(config, stopId, function (error, data) {
                 if (!error) {
                     var routes = new Map();
-		   // console.log("stopId=" + stopId);
-		    //console.log("data.buses.length=" + data.buses.length);
+           // console.log("stopId=" + stopId);
+            //console.log("data.buses.length=" + data.buses.length);
 
                     for (i = 0; i < data.buses.length; i++) {
                         var bus = data.buses[i];
                         var key = bus.line.trim() + bus.name.trim();
                         var routeCount = routes.has(key) ? routes.get(key) : 0;
                         var minutes = bus.time;
-			//console.log("bus.time.trim()= " + self.toDate(bus.time));
+            //console.log("bus.time.trim()= " + self.toDate(bus.time));
                         if (routeCount < config.maxCount) {
                             routeCount++;
                             routes.set(key, routeCount);
-				//console.log("push newstopbus " + bus.time);
+                //console.log("push newstopbus " + bus.time);
 
                             stopBuses.push({
                                 number: bus.line.trim(),
@@ -132,132 +132,126 @@ module.exports = NodeHelper.create({
         return true;
     },
 
-	
+    
    
-    getAtbStopTimes: function (config, stopId, handleResponse) {
+    getBdxStopTimes: function (config, stopId, handleResponse) {
         var self = this;
-
+        // Get web page contents.
         var xmlhttp = new XMLHttpRequest();
-         xmlhttp.onreadystatechange = function() {
-             err = 0;
-             result = {
+        xmlhttp.onreadystatechange = function() 
+        {
+            err = 0;
+            result = {
                 timestamp: '',
                 buses: []
-              }
-          if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+            }
+            if ( xmlhttp.readyState == 4 && xmlhttp.status == 200 ) 
+            {
+                result.timestamp = Date.now() ;
+                parser = new DOMParser();
+                textHtml = xmlhttp.responseText;
 
-		result.timestamp = Date.now() ;
-		parser = new DOMParser();
-		textHtml = xmlhttp.responseText;
-		textHtml = textHtml.replace(
-		"<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">",
-		"");
+                position = 0;
+                var textHtmlOrigin = textHtml;
+                // Get station name in html page.
+                var stationName = self.getStationName( textHtml );
+                // Collect all bus hour in the html pages
+                self.getAllBusHoraire( textHtmlOrigin , result, position, stationName );
+                handleResponse( err, result );
+            }
+        };
 
-	
-		position = 0;
-		var textHtmlOrigin = textHtml;
-		var stationName = self.getAllBusStation(textHtml);
-		//console.log("stationName = " + stationName );
-		self.getAllBusHoraire(textHtmlOrigin , result, position, stationName  );
-              
-		handleResponse(err, result);
-          } 
-
-          
-         };
-
-         xmlhttp.open("GET", stopId, true);
-         xmlhttp.send();
-
-
+        xmlhttp.open("GET", stopId, true);
+        xmlhttp.send();
      },
- getAllBusHoraire: function (textHtmlOrigin, result, position, stationName  ) {
-	var self = this;
-		textHtml = textHtmlOrigin;
-		var positionInAllHtml = textHtml.indexOf("<div class=\"horaires-bus\">", position);
-		// On sort de la fonction si il n'y a pas de bus à afficher
-		if(positionInAllHtml === -1) return;
+     
+    /*
+        getAllBusHoraire : Get bus time.
+        textHtmlOrigin: Html page content
+        result: list of result
+        position: Position in the full html  content
+        stationName: name of the station.
+    */
+    getAllBusHoraire: function (textHtmlOrigin, result, position, stationName  ) {
+        var self = this;
+        textHtml = textHtmlOrigin;
+        // Get balise that contains bus time.
+        var positionInAllHtml = textHtml.indexOf("<div class=\"horaires-bus\">", position);
+        // If no bus data, exit from the function.
+        if(positionInAllHtml === -1) return;
 
-		//console.log("positionInAllHtml : " + positionInAllHtml );
-	        textHtml = textHtml.substr(positionInAllHtml );
-		var position = textHtml.indexOf("</div>", 0);
-		position = textHtml.indexOf("</div>", position  + 1);
-		
+        // Get the end of the balise and extract the content.
+        textHtml = textHtml.substr(positionInAllHtml );
+        var position = textHtml.indexOf("</div>", 0);
+        position = textHtml.indexOf("</div>", position  + 1);
+        position = position  + 6; // Add 6 for "</div>" element size.
+        textHtml = textHtml.substr(0, position);
+        //console.log("textHtml: " + textHtml);
 
-		position = position  + 6; // Add "</div>" element size.
-		textHtml = textHtml.substr(0, position);
-		//console.log("textHtml: " + textHtml);
+        var title = "";
+        var direction  = "";
+        var time  = new Array ();
+        time[0] = "Pas de Bus";
+        xml2js.parseString(textHtml , function(err, json) 
+        {
+            if(err !== null ) return;
 
-                var title = "";
-		var direction  = "";
-		var time  = new Array ();
-		time[0] = "Pas de Bus";
-		xml2js.parseString(textHtml , function(err, json) {
-			//console.log("err: " + err);
-			//if(err != 0 ) console.log("error not null");
-			if(err !== null ) return;
+             // find the first element, and get its id:
+            title  = xpath.evalFirst(json, "//img", "title");
+            direction = (xpath.find(json,"//span[@class='direction bold']"))[0]["_"];
+            hours = (xpath.find(json,"//span"))[2];
+            var itrHour = 0;
+            for(var i = 0; i <hours["span"].length; i++) 
+            {
+                if( hours["span"][i]["$"]["class"] == "horaires-bold")
+                {
+                    time[itrHour] = hours["span"][i]["_"];
+                    itrHour  ++;
+                }
+            }
+        });
+        
+        var timePrint = time[0] ;
+        if(time.length > 1)
+        {
+            timePrint = time[0] + " - " + time[1];
+        }
 
- 			//if(err != 0) return;
- 			 // find the first element, and get its id:
- 			 title  = xpath.evalFirst(json, "//img", "title");
- 			//console.log("json: " + json);
-			direction = (xpath.find(json,"//span[@class='direction bold']"))[0]["_"];
-			hours = (xpath.find(json,"//span"))[2];
-				//console.log(hours["span"]);
-			var itrHour = 0;
-			for(var i = 0; i <hours["span"].length; i++) {
-				if( hours["span"][i]["$"]["class"] == "horaires-bold")
-				{
-					time[itrHour] = hours["span"][i]["_"];
-					itrHour  ++;
-				}
-	     		  }
-		});
-		//console.log("time[0] = " + time[0]);
-		var timePrint = time[0] ;
-		if(time.length == 1)
-		{
-			//timePrint  = timePrint + " - " +"Pas plus";
-		}
-		else
-		{
-			timePrint = time[0] + " - " + time[1];
-		}
-
-		 result.buses.push( {
+        result.buses.push( {
                                 line: title ,
                                 destination: direction ,
                                 time: timePrint ,
                                 name: stationName  
-                            });
+                           });
 
-		if(textHtmlOrigin.indexOf("<div class=\"horaires-bus\">", positionInAllHtml + 20) != -1)
-		{
-			//console.log("positionInAllHtml + 1 : " + positionInAllHtml );
-			// Fonction réciproque
-			self.getAllBusHoraire(textHtmlOrigin, result, positionInAllHtml + 20, stationName  );
-		}
+        if(textHtmlOrigin.indexOf("<div class=\"horaires-bus\">", positionInAllHtml + 20) != -1)
+        {
+            // Recursive Fonction
+            // We continue to collect hour bus for the same station.
+            self.getAllBusHoraire(textHtmlOrigin, result, positionInAllHtml + 20, stationName  );
+        }
+    },
 
-	},
-
- getAllBusStation: function (textHtmlOrigin) {
-	var stationName = "";
-	textHtml = textHtmlOrigin;
-	var position = textHtml.indexOf("<div class=\"header-sd-default header_title\">", 0);
-	textHtml = textHtml.substr(position);
-	position = textHtml.indexOf("</div>", 0);
-	position = position  + 6; // Add "</div>" element size.
-	textHtml = textHtml.substr(0, position);
-
-	//console.log("stationName : " + textHtml );
-	
-	xml2js.parseString(textHtml , function(err, json) {
- 		stationName = (xpath.find(json,"//span[@class='header-sd-title']"))[0]["_"];
-	});
-//console.log("stopName = " + stationName );
-
-	return stationName ;
-
+    /*
+        getStationName : Get station name from web page.
+        textHtmlOrigin: Html page content
+    */
+ getStationName: function (textHtmlOrigin) 
+ {
+    var stationName = "";
+    textHtml = textHtmlOrigin;
+    // Extract the content.
+    var position = textHtml.indexOf("<div class=\"header-sd-default header_title\">", 0);
+    textHtml = textHtml.substr(position);
+    position = textHtml.indexOf("</div>", 0);
+    position = position  + 6; // Add 6 for "</div>" element size.
+    textHtml = textHtml.substr(0, position);
+    // Convert the xml to json.
+    xml2js.parseString(textHtml , function(err, json) {
+        // Find the station Name.
+        stationName = (xpath.find(json,"//span[@class='header-sd-title']"))[0]["_"];
+    });
+    return stationName ;
 }
 
 });
