@@ -60,26 +60,22 @@ module.exports = NodeHelper.create({
 
     readBuses: function (config, buses) {
         var self = this;
-        stops = config.stopIds;
+        stops = config.stopUrl;
         stops.forEach(function (stopId) {
             var stopBuses = [];
-            //console.log("readBuses");
+            
             self.getBdxStopTimes(config, stopId, function (error, data) {
                 if (!error) {
                     var routes = new Map();
-           // console.log("stopId=" + stopId);
-            //console.log("data.buses.length=" + data.buses.length);
 
                     for (i = 0; i < data.buses.length; i++) {
                         var bus = data.buses[i];
                         var key = bus.line.trim() + bus.name.trim();
                         var routeCount = routes.has(key) ? routes.get(key) : 0;
                         var minutes = bus.time;
-            //console.log("bus.time.trim()= " + self.toDate(bus.time));
                         if (routeCount < config.maxCount) {
                             routeCount++;
                             routes.set(key, routeCount);
-                //console.log("push newstopbus " + bus.time);
 
                             stopBuses.push({
                                 number: bus.line.trim(),

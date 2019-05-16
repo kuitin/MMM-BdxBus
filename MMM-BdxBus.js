@@ -34,13 +34,10 @@ Module.register("MMM-BdxBus", {
     defaults: {
         showIcon: true,
         showNumber: true,
-        showFrom: true,
         showTo: true,
-        showMin: true,
         size: "medium",
-        stopIds: [16011496, 16010496],
+        stopUrl: [],
         maxCount: 2, // Max number of next buses per route
-        maxMinutes: 45, // Do not show buses more then this minutes into the future
         stacked: true // Show multiple buses on same row, if same route and destination
     },
 
@@ -166,14 +163,6 @@ Module.register("MMM-BdxBus", {
                 busWrapper.appendChild(numberWrapper);
             }
 
-            // Holdeplass
-            if (self.config.showFrom) {
-                var fromWrapper = document.createElement("td");
-                fromWrapper.innerHTML = bus.from;
-                fromWrapper.className = "align-left atb-from";
-                busWrapper.appendChild(fromWrapper);
-            }
-
             // Destinasjon
             if (self.config.showTo) {
                 var toWrapper = document.createElement("td");
@@ -181,20 +170,12 @@ Module.register("MMM-BdxBus", {
                 toWrapper.innerHTML = bus.to;
                 busWrapper.appendChild(toWrapper);
             }
-
-            // Minutter
-          /*  var minutesWrapper = document.createElement("td");
-            minutesWrapper.className = "align-right atb-minutes";
-            minutesWrapper.innerHTML = bus.time;//minutes;
-            busWrapper.appendChild(minutesWrapper);*/
-
-            // Min (text)
-            if (self.config.showMin) {
-                var minWrapper = document.createElement("td");
-                minWrapper.className = "align-left";
-                minWrapper.innerHTML = bus.times[0];//'&nbsp;min';
-                busWrapper.appendChild(minWrapper);
-            }
+            
+            var minWrapper = document.createElement("td");
+            minWrapper.className = "align-left";
+            minWrapper.innerHTML = bus.times[0];
+            busWrapper.appendChild(minWrapper);
+            
 
             wrapper.appendChild(busWrapper);
         });
