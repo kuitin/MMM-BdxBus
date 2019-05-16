@@ -63,29 +63,29 @@ module.exports = NodeHelper.create({
         stops = config.stopIds;
         stops.forEach(function (stopId) {
             var stopBuses = [];
-            console.log("readBuses");
+            //console.log("readBuses");
             self.getAtbStopTimes(config, stopId, function (error, data) {
                 if (!error) {
                     var routes = new Map();
-		    console.log("stopId=" + stopId);
-		    console.log("data.buses.length=" + data.buses.length);
+		   // console.log("stopId=" + stopId);
+		    //console.log("data.buses.length=" + data.buses.length);
 
                     for (i = 0; i < data.buses.length; i++) {
                         var bus = data.buses[i];
                         var key = bus.line.trim() + bus.name.trim();
                         var routeCount = routes.has(key) ? routes.get(key) : 0;
-                        var minutes = bus.time;// Math.round((self.toDate(bus.time) - (new Date())) / 60000);
+                        var minutes = bus.time;
 			//console.log("bus.time.trim()= " + self.toDate(bus.time));
                         if (routeCount < config.maxCount) {
                             routeCount++;
                             routes.set(key, routeCount);
-				console.log("push newstopbus " + bus.time);
+				//console.log("push newstopbus " + bus.time);
 
                             stopBuses.push({
                                 number: bus.line.trim(),
                                 from: bus.name.trim(),
                                 to: bus.destination.trim(),
-                                time: bus.time//.trim()
+                                time: bus.time
                             });
                         }
                     }
@@ -95,7 +95,6 @@ module.exports = NodeHelper.create({
                     console.error(self.name + ': Request error: ' + error);
                 }
             });
-		console.log("END readBuses");
         });
     },
 
@@ -111,7 +110,7 @@ module.exports = NodeHelper.create({
        //     return (self.toDate(a.time) - self.(b.time));
        // });
         filteredBuses = busArr.filter(function (el, i, a) {
-            return !self.duplicateBuses(el, a[i - 1]); // Seems that some times AtB returns duplicated buses
+            return !self.duplicateBuses(el, a[i - 1]); 
         });
         self.sendSocketNotification('BUS_DATA', filteredBuses);
     },
@@ -133,53 +132,6 @@ module.exports = NodeHelper.create({
         return true;
     },
 
-    toDate: function (s) {
-        year = s.substring(0, 4);
-        month = parseInt(s.substring(5, 7)) - 1;
-        day = s.substring(8, 10);
-        hour = s.substring(11, 13);
-        minute = s.substring(14, 16);
-        time = new Date(year, month, day, hour, minute, 0, 0);
-        return time;
-    },
-
-    createAtbSmsXml: function (config, stopId) {
-        var currentTime = new Date();
-        var requestTime = currentTime.getFullYear() + '-'
-            + (((currentTime.getMonth() + 1) < 10) ? '0' : '')
-            + (currentTime.getMonth() + 1) + '-'
-            + ((currentTime.getDate() < 10) ? '0' : '')
-            + currentTime.getDate() + 'T'
-            + ((currentTime.getHours() < 10) ? '0' : '')
-            + currentTime.getHours() + ':'
-            + ((currentTime.getMinutes() < 10) ? '0' : '')
-            + currentTime.getMinutes() + ':'
-            + ((currentTime.getSeconds() < 10) ? '0' : '')
-            + currentTime.getSeconds() + '.'
-            + currentTime.getMilliseconds() + 'Z';
-        var requestor = 'github.com/ottopaulsen/MMM-NesteBussAtB';
-        var previewInterval = 'PT' + config.maxMinutes + 'M';
-        var xml = `
-        <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:siri="http://www.siri.org.uk/siri">
-        <soapenv:Header/>
-        <soapenv:Body>
-            <siri:GetStopMonitoring>
-                <ServiceRequestInfo>
-                    <siri:RequestTimestamp>` + requestTime + `</siri:RequestTimestamp>
-                    <siri:RequestorRef>` + requestor + `</siri:RequestorRef>
-                </ServiceRequestInfo>
-                <Request version="1.4">
-                    <siri:RequestTimestamp>` + requestTime + `</siri:RequestTimestamp>
-                    <siri:PreviewInterval>` + previewInterval + `</siri:PreviewInterval>
-                    <siri:MonitoringRef>` + stopId + `</siri:MonitoringRef>
-                </Request>
-                <RequestExtension></RequestExtension>
-            </siri:GetStopMonitoring>
-        </soapenv:Body>
-        </soapenv:Envelope>
-        `;
-        return xml;
-    },
 	
    
     getAtbStopTimes: function (config, stopId, handleResponse) {
@@ -205,7 +157,7 @@ module.exports = NodeHelper.create({
 		position = 0;
 		var textHtmlOrigin = textHtml;
 		var stationName = self.getAllBusStation(textHtml);
-		console.log("stationName = " + stationName );
+		//console.log("stationName = " + stationName );
 		self.getAllBusHoraire(textHtmlOrigin , result, position, stationName  );
               
 		handleResponse(err, result);
@@ -226,7 +178,7 @@ module.exports = NodeHelper.create({
 		// On sort de la fonction si il n'y a pas de bus à afficher
 		if(positionInAllHtml === -1) return;
 
-		console.log("positionInAllHtml : " + positionInAllHtml );
+		//console.log("positionInAllHtml : " + positionInAllHtml );
 	        textHtml = textHtml.substr(positionInAllHtml );
 		var position = textHtml.indexOf("</div>", 0);
 		position = textHtml.indexOf("</div>", position  + 1);
@@ -248,7 +200,7 @@ module.exports = NodeHelper.create({
  			//if(err != 0) return;
  			 // find the first element, and get its id:
  			 title  = xpath.evalFirst(json, "//img", "title");
- 			console.log("json: " + json);
+ 			//console.log("json: " + json);
 			direction = (xpath.find(json,"//span[@class='direction bold']"))[0]["_"];
 			hours = (xpath.find(json,"//span"))[2];
 				//console.log(hours["span"]);
@@ -281,7 +233,7 @@ module.exports = NodeHelper.create({
 
 		if(textHtmlOrigin.indexOf("<div class=\"horaires-bus\">", positionInAllHtml + 20) != -1)
 		{
-			console.log("positionInAllHtml + 1 : " + positionInAllHtml );
+			//console.log("positionInAllHtml + 1 : " + positionInAllHtml );
 			// Fonction réciproque
 			self.getAllBusHoraire(textHtmlOrigin, result, positionInAllHtml + 20, stationName  );
 		}
@@ -302,7 +254,7 @@ module.exports = NodeHelper.create({
 	xml2js.parseString(textHtml , function(err, json) {
  		stationName = (xpath.find(json,"//span[@class='header-sd-title']"))[0]["_"];
 	});
-console.log("stopName = " + stationName );
+//console.log("stopName = " + stationName );
 
 	return stationName ;
 
