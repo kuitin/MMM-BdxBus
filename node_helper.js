@@ -48,8 +48,8 @@ module.exports = NodeHelper.create({
         console.log(this.name + ': Received socket notification ' + notification);
         var self = this;
         var buses = new Map();
-        if (notification == 'NESTEBUSSATB_CONFIG') {
-            console.log(self.name + ': AtB Connection started');
+        if (notification == 'BDXBUS_CONFIG') {
+            console.log(self.name + ': BdxB Connection started');
 
             self.readBuses(payload, buses);
             setInterval(function () {

@@ -2,6 +2,7 @@
 This project is based on https://github.com/ottopaulsen/MMM-NesteBussAtB, modify by Quentin Delahaye.
 
 Copyright (c) 2018 Otto Paulsen
+Original name file: MMM-NesteBussAtB.js
 
 
 Copyright (c) https://github.com/ottopaulsen/MMM-NesteBussAtB
@@ -28,7 +29,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-Module.register("MMM-NesteBussAtB", {
+Module.register("MMM-BdxBus", {
     // Default module config
     defaults: {
         showIcon: true,
