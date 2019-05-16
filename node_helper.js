@@ -2,6 +2,7 @@
 This project is based on https://github.com/ottopaulsen/MMM-NesteBussAtB, modify by Quentin Delahaye.
 
 Copyright (c) 2018 Otto Paulsen
+Original name file: MMM-NesteBussAtB.js
 
 
 Copyright (c) https://github.com/ottopaulsen/MMM-NesteBussAtB
@@ -28,226 +29,193 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-var NodeHelper = require("node_helper");
-var request = require('request');
-var convert = require('xml-js');
-var https = require('https');
-var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
-var jsdom = require("jsdom").JSDOM;
-var DOMParser = require('xmldom').DOMParser;
-var xpath = require("xml2js-xpath");
-var xml2js = require("xml2js");
-
-module.exports = NodeHelper.create({
+Module.register("MMM-BdxBus", {
+    // Default module config
+    defaults: {
+        showIcon: true,
+        showNumber: true,
+        showTo: true,
+        size: "medium",
+        colorDefault:"",
+        colorByDst:[],
+        stopUrl: [],
+        maxCount: 2, // Max number of next buses per route
+        stacked: true // Show multiple buses on same row, if same route and destination
+    },
 
     start: function () {
-        console.log(this.name + ': Starting node helper');
+        console.log(this.name + ' started.')
+        this.buses = [];
+        this.openBusConnection();
+        var self = this;
+        setInterval(function () {
+            self.updateDom(0);
+        }, 10000);
+    },
+
+    openBusConnection: function () {
+        console.log('Sending BDXBUS_CONFIG with config: ', this.config);
+        this.sendSocketNotification('BDXBUS_CONFIG', this.config);
     },
 
     socketNotificationReceived: function (notification, payload) {
-        console.log(this.name + ': Received socket notification ' + notification);
-        var self = this;
-        var buses = new Map();
-        if (notification == 'BDXBUS_CONFIG') {
-            console.log(self.name + ': BdxB Connection started');
-
-            self.readBuses(payload, buses);
-            setInterval(function () {
-                self.readBuses(payload, buses);
-            }, 60000);
+        if (notification == 'BUS_DATA') {
+            if (payload != null) {
+                this.buses = this.config.stacked ? this.stackBuses(payload) : payload;
+                this.updateDom();
+            } else {
+                console.log(this.name + ': BUS_DATA - No payload');
+            }
         }
     },
 
-    readBuses: function (config, buses) {
-        var self = this;
-        stops = config.stopUrl;
-        stops.forEach(function (stopId) {
-            var stopBuses = [];
-            
-            self.getBdxStopTimes(config, stopId, function (error, data) {
-                if (!error) {
-                    var routes = new Map();
+    stackBuses: function (buses) {
+        stackedBuses = [];
 
-                    for (i = 0; i < data.buses.length; i++) {
-                        var bus = data.buses[i];
-                        var key = bus.line.trim() + bus.name.trim();
-                        var routeCount = routes.has(key) ? routes.get(key) : 0;
-                        var minutes = bus.time;
-                        if (routeCount < config.maxCount) {
-                            routeCount++;
-                            routes.set(key, routeCount);
+        buses.sort(function (a, b) {
+            // return (self.toDate(a.time) - self.toDate(b.time));
+            return ('' + a.from + a.number + a.to + a.time).localeCompare('' + b.from + b.number + b.to + b.time);
+        });
 
-                            stopBuses.push({
-                                number: bus.line.trim(),
-                                from: bus.name.trim(),
-                                to: bus.destination.trim(),
-                                time: bus.time
-                            });
-                        }
-                    }
-                    buses.set(stopId, stopBuses);
-                    self.broadcastMessage(buses);
+        var len = buses.length;
+        var previousStackvalue = '';
+        var stackedTimes = [];
+        if (len > 0) {
+            previousStackvalue = '' + buses[0].from + buses[0].number + buses[0].to;
+            stackedTimes.push(buses[0].time);
+            for (var i = 1; i < len; i++) {
+                stackvalue = '' + buses[i].from + buses[i].number + buses[i].to;
+                if (stackvalue == previousStackvalue) {
+                    stackedTimes.push(buses[i].time);
                 } else {
-                    console.error(self.name + ': Request error: ' + error);
+                    stackedBuses.push({
+                        from: buses[i - 1].from,
+                        number: buses[i - 1].number,
+                        to: buses[i - 1].to,
+                        times: stackedTimes
+                    });
+                    previousStackvalue = stackvalue;
+                    stackedTimes = [];
+                    stackedTimes.push(buses[i].time)
                 }
+            }
+            stackedBuses.push({
+                from: buses[len - 1].from,
+                number: buses[len - 1].number,
+                to: buses[len - 1].to,
+                times: stackedTimes
             });
-        });
-    },
-
-    broadcastMessage: function (buses) {
-        self = this;
-        busArr = [];
-        buses.forEach(function (stop) {
-            stop.forEach(function(bus) {
-                busArr.push(bus);
-            });
-        });
-        //busArr.sort(function (a, b) {
-       //     return (self.toDate(a.time) - self.(b.time));
-       // });
-        filteredBuses = busArr.filter(function (el, i, a) {
-            return !self.duplicateBuses(el, a[i - 1]); 
-        });
-        self.sendSocketNotification('BUS_DATA', filteredBuses);
-    },
-
-    printBuses(label, b) {
-        console.log(label);
-        for (i = 0; i < b.length; i++) {
-            console.log('Bus ' + i + ': Line ' + b[i].number + ' from ' + b[i].from + ' to ' + b[i].to + ' time ' + b[i].time);
         }
+        return stackedBuses;
     },
 
-    duplicateBuses: function (a, b) {
-        if (!a) return false;
-        if (!b) return false;
-        if (a.number != b.number) return false;
-        if (a.from != b.from) return false;
-        if (a.to != b.to) return false;
-        if (a.time != b.time) return false;
-        return true;
+    getStyles: function () {
+        return [
+            'NesteBussAtB.css'
+        ];
     },
-
     
-   
-    getBdxStopTimes: function (config, stopId, handleResponse) {
-        var self = this;
-        // Get web page contents.
-        var xmlhttp = new XMLHttpRequest();
-        xmlhttp.onreadystatechange = function() 
+    getColorByDest: function (destination) {
+        var result = "";
+        if(self.config.colorByDst.length > 0)
         {
-            err = 0;
-            result = {
-                timestamp: '',
-                buses: []
-            }
-            if ( xmlhttp.readyState == 4 && xmlhttp.status == 200 ) 
-            {
-                result.timestamp = Date.now() ;
-                parser = new DOMParser();
-                textHtml = xmlhttp.responseText;
-
-                position = 0;
-                var textHtmlOrigin = textHtml;
-                // Get station name in html page.
-                var stationName = self.getStationName( textHtml );
-                // Collect all bus hour in the html pages
-                self.getAllBusHoraire( textHtmlOrigin , result, position, stationName );
-                handleResponse( err, result );
-            }
-        };
-
-        xmlhttp.open("GET", stopId, true);
-        xmlhttp.send();
-     },
-     
-    /*
-        getAllBusHoraire : Get bus time.
-        textHtmlOrigin: Html page content
-        result: list of result
-        position: Position in the full html  content
-        stationName: name of the station.
-    */
-    getAllBusHoraire: function (textHtmlOrigin, result, position, stationName  ) {
-        var self = this;
-        textHtml = textHtmlOrigin;
-        // Get balise that contains bus time.
-        var positionInAllHtml = textHtml.indexOf("<div class=\"horaires-bus\">", position);
-        // If no bus data, exit from the function.
-        if(positionInAllHtml === -1) return;
-
-        // Get the end of the balise and extract the content.
-        textHtml = textHtml.substr(positionInAllHtml );
-        var position = textHtml.indexOf("</div>", 0);
-        position = textHtml.indexOf("</div>", position  + 1);
-        position = position  + 6; // Add 6 for "</div>" element size.
-        textHtml = textHtml.substr(0, position);
-        //console.log("textHtml: " + textHtml);
-
-        var title = "";
-        var direction  = "";
-        var time  = new Array ();
-        time[0] = "Pas de Bus";
-        xml2js.parseString(textHtml , function(err, json) 
-        {
-            if(err !== null ) return;
-
-             // find the first element, and get its id:
-            title  = xpath.evalFirst(json, "//img", "title");
-            direction = (xpath.find(json,"//span[@class='direction bold']"))[0]["_"];
-            hours = (xpath.find(json,"//span"))[2];
-            var itrHour = 0;
-            for(var i = 0; i <hours["span"].length; i++) 
-            {
-                if( hours["span"][i]["$"]["class"] == "horaires-bold")
+               self.config.colorByDst.forEach(function (dst) {
+                if(dst.length > 1 && destination.includes(dst[0]))
                 {
-                    time[itrHour] = hours["span"][i]["_"];
-                    itrHour  ++;
+                    result = dst[1];
                 }
-            }
-        });
-        
-        var timePrint = time[0] ;
-        if(time.length > 1)
-        {
-            timePrint = time[0] + " - " + time[1];
+            });
         }
-
-        result.buses.push( {
-                                line: title ,
-                                destination: direction ,
-                                time: timePrint ,
-                                name: stationName  
-                           });
-
-        if(textHtmlOrigin.indexOf("<div class=\"horaires-bus\">", positionInAllHtml + 20) != -1)
-        {
-            // Recursive Fonction
-            // We continue to collect hour bus for the same station.
-            self.getAllBusHoraire(textHtmlOrigin, result, positionInAllHtml + 20, stationName  );
-        }
+        return result;
     },
 
-    /*
-        getStationName : Get station name from web page.
-        textHtmlOrigin: Html page content
-    */
- getStationName: function (textHtmlOrigin) 
- {
-    var stationName = "";
-    textHtml = textHtmlOrigin;
-    // Extract the content.
-    var position = textHtml.indexOf("<div class=\"header-sd-default header_title\">", 0);
-    textHtml = textHtml.substr(position);
-    position = textHtml.indexOf("</div>", 0);
-    position = position  + 6; // Add 6 for "</div>" element size.
-    textHtml = textHtml.substr(0, position);
-    // Convert the xml to json.
-    xml2js.parseString(textHtml , function(err, json) {
-        // Find the station Name.
-        stationName = (xpath.find(json,"//span[@class='header-sd-title']"))[0]["_"];
-    });
-    return stationName ;
-}
+    getDom: function () {
+        self = this;
+        var wrapper = document.createElement("table");
+        wrapper.className = "medium";
+        var first = true;
 
+        if (self.buses.length === 0) {
+            wrapper.innerHTML = (self.loaded) ? self.translate("EMPTY") : self.translate("LOADING");
+            wrapper.className = "medium dimmed";
+            console.log(self.name + ': No buses');
+            return wrapper;
+        }
+
+        self.buses.forEach(function (bus) {
+            var now = new Date();
+            var minutes = '';
+            if(self.config.stacked) {
+                if(bus.times.length > 0) {
+                    var busTime = self.toDate(bus.times[0]);
+                    minutes = Math.round((busTime - now) / 60000);
+                }
+                for(var i=1; i < bus.times.length; i++){
+                    var busTime = self.toDate(bus.times[i]);
+                    minutes += ', ' + Math.round((busTime - now) / 60000);
+                }
+            } else {
+                var busTime = self.toDate(bus.time);
+                minutes = Math.round((busTime - now) / 60000);
+            }
+
+            var busWrapper = document.createElement("tr");
+            busWrapper.className = 'border_bottom ' + self.config.size + (first ? ' border_top' : '');
+            first = false; // Top border only on the first row
+            
+            // Get color font
+            var fontColor = "";
+            if(self.config.colorDefault !== "") fontColor = self.config.colorDefault;
+            var fontColorByDst = self.getColorByDest(bus.to);
+	    if(fontColorByDst !== "") fontColor =fontColorByDst ;
+                
+            // Icon
+            if (self.config.showIcon) {
+                var iconWrapper = document.createElement("td");
+                iconWrapper.innerHTML = '<i class="fa fa-bus" aria-hidden="true"></i>';
+                iconWrapper.className = "align-right";
+                iconWrapper.style.color = fontColor;
+                busWrapper.appendChild(iconWrapper);
+            }
+
+            // Rute
+            if (self.config.showNumber) {
+                var numberWrapper = document.createElement("td");
+                numberWrapper.innerHTML = bus.number;
+                numberWrapper.className = "atb-number";
+                numberWrapper.style.color = fontColor;
+                busWrapper.appendChild(numberWrapper);
+            }
+
+            // Destinasjon
+            if (self.config.showTo) {
+                var toWrapper = document.createElement("td");
+                toWrapper.className = "align-left atb-to";
+                toWrapper.innerHTML = bus.to;
+                toWrapper.style.color = fontColor;
+                busWrapper.appendChild(toWrapper);
+            }
+            
+            var minWrapper = document.createElement("td");
+            minWrapper.className = "align-left";
+            minWrapper.innerHTML = bus.times[0];
+            minWrapper.style.color = fontColor;
+            busWrapper.appendChild(minWrapper);
+            
+
+            wrapper.appendChild(busWrapper);
+        });
+        return wrapper;
+    },
+
+    toDate: function (s) {
+        // Translate the API date to Date object
+        year = s.substring(0, 4);
+        month = parseInt(s.substring(5, 7)) - 1;
+        day = s.substring(8, 10);
+        hour = s.substring(11, 13);
+        minute = s.substring(14, 16);
+        time = new Date(year, month, day, hour, minute, 0, 0);
+        return time;
+    }
 });

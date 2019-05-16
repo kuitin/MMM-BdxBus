@@ -1,8 +1,8 @@
 {
-  "name": "MMM-NesteBussAtB",
+  "name": "MMM-BdxBus",
   "version": "0.0.1",
-  "description": "Vis neste avganger fra angitte holdeplasser",
-  "author": "Otto Paulsen",
+  "description": "Affichage des horaires de Bus",
+  "author": "Quentin Delahaye",
   "dependencies": {
     "font-awesome": "latest",
     "jsdom": "^15.0.0",
@@ -13,5 +13,6 @@
     "xml2js-xpath": "^0.10.0",
     "xmldom": "^0.1.27",
     "xmlhttprequest": "^1.8.0"
+    "https": "^1.0.0"
   }
 }

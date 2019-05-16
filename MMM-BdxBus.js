@@ -36,6 +36,8 @@ Module.register("MMM-BdxBus", {
         showNumber: true,
         showTo: true,
         size: "medium",
+        colorDefault:"",
+        colorByDst:[],
         stopUrl: [],
         maxCount: 2, // Max number of next buses per route
         stacked: true // Show multiple buses on same row, if same route and destination
@@ -112,6 +114,20 @@ Module.register("MMM-BdxBus", {
             'NesteBussAtB.css'
         ];
     },
+    
+    getColorByDest: function (destination) {
+        var result = "";
+        if(self.config.colorByDst.length > 0)
+        {
+            self.config.colorByDst.forEach(function (dst) {
+                if(dst[0].length > 1 && dst[0] === destination)
+                {
+                    result = dst[1];
+                }
+            });
+        }
+        return result;
+    },
 
     getDom: function () {
         self = this;
@@ -146,12 +162,18 @@ Module.register("MMM-BdxBus", {
             var busWrapper = document.createElement("tr");
             busWrapper.className = 'border_bottom ' + self.config.size + (first ? ' border_top' : '');
             first = false; // Top border only on the first row
-
+            
+            // Get color font
+            var fontColor = "";
+            if(self.config.colorDefault !== "") fontColor = self.config.colorDefault;
+            fontColor = self.getColorByDest(toWrapper);
+                
             // Icon
             if (self.config.showIcon) {
                 var iconWrapper = document.createElement("td");
                 iconWrapper.innerHTML = '<i class="fa fa-bus" aria-hidden="true"></i>';
                 iconWrapper.className = "align-right";
+                iconWrapper.style.color = fontColor;
                 busWrapper.appendChild(iconWrapper);
             }
 
@@ -160,6 +182,7 @@ Module.register("MMM-BdxBus", {
                 var numberWrapper = document.createElement("td");
                 numberWrapper.innerHTML = bus.number;
                 numberWrapper.className = "atb-number";
+                numberWrapper.style.color = fontColor;
                 busWrapper.appendChild(numberWrapper);
             }
 
@@ -168,12 +191,14 @@ Module.register("MMM-BdxBus", {
                 var toWrapper = document.createElement("td");
                 toWrapper.className = "align-left atb-to";
                 toWrapper.innerHTML = bus.to;
+                toWrapper.style.color = fontColor;
                 busWrapper.appendChild(toWrapper);
             }
             
             var minWrapper = document.createElement("td");
             minWrapper.className = "align-left";
             minWrapper.innerHTML = bus.times[0];
+            minWrapper.style.color = fontColor;
             busWrapper.appendChild(minWrapper);
             
 
