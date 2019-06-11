@@ -1,40 +1,37 @@
-# NesteBussAtB
+# BdxBus
 
-![Screenshot](doc/Screenshot-MMM-NesteBussAtB.png)
+![Screenshot](doc/Screenshot-MMM-BordeauxBus.png)
 
-Modul til [MagicMirror](https://github.com/MichMich/MagicMirror/) som viser hvor mange minutter det er til neste buss til hver destinasjon fra utvalgte holdeplasser går. Plukk ut aktuelle holdeplasser i nærheten. Finn holdeplassenes holdeplassnummer på AtB sin [holdeplassoversikt](https://www.atb.no/holdeplassoversikt/). Legg disse inn i `config.js` som beskrevet nedenfor (stopIds).
+Module dépendant [MagicMirror](https://github.com/MichMich/MagicMirror/) qui permet d'afficher les horraires des Bus de Bordeaux. Il vous faudra récupérer les lien des horaries des bus à partir de QR codes de chacunes des stations.
 
-Kan også vise en mer kompakt visning med flere avganger av samme buss på samme linje:
+Ce module est basé sur celui de Otto Paulsen: https://github.com/ottopaulsen/MMM-NesteBussAtB
 
-![Screenshot stacked](doc/Screenshot-MMM-NesteBussAtB-Stacked.png)
+## Installation
 
-## Installasjon
+Exécuter les commandes suivantes dans le répertoire`MagicMirror/modules` :
 
-Gå til din `MagicMirror/modules` mappe og skriv
-
-    git clone https://github.com/ottopaulsen/MMM-NesteBussAtB.git
-    cd MMM-NesteBussAtB
+    git clone https://github.com/kuitin/MMM-BdxBus.git
+    cd MMM-BdxBus
     npm install
 
 
-## Konfigurasjon
+## Configurations
 
-Dette er default-konfigurasjon med forklaring (skal inn i MagicMirror sin `config.js`:
+Ajouter un nouveau module dans le fichier de configuration du MagicMirror (config/config.js):
 
-        {
-            module: 'MMM-NesteBussAtB',
-            position: 'upper_third',
-            config: {
-                showIcon: true, // Bus icon in front of row
-                showNumber: true, // Bus number
-                showFrom: true, // Bus stop name
-                showTo: true, // Bus destination
-                showMin: true, // "min" text after minutes
-                size: "medium", // Text size, for example small, medium or large
-                stopIds: [16011496, 16010496], // See https://www.atb.no/holdeplassoversikt/
-                maxCount: 2, // Max number of next buses per route
-                maxMinutes: 45, // Do not show buses more then this minutes into the future
-                stacked: true // Show multiple buses on same row, if same route and destination       
-            }
-        },
+    {
+        module: 'MMM-BdxBus',
+        position: 'bottom_left',
+        config: {
+                showIcon: true, // Affichage de l'icon de bus
+                showNumber: true, // Affichage du numéro de bus
+                showTo: true, // Affichage de la destination du Bus
+                size: "small", // Taille du texte, par exemple small, medium ou large
+                stopUrl: ["https://site.adtag.fr/adstudio/tbctempsreel/53c8dccae4b0fc835ee3c515/pages/home_bus.seam?ott=AAABa0YDbSUyTF"], // Url récupérée à partir du captcha à l'arrêt de bus.
+                maxCount: 2, //Nombre max de bus par arrêt
+                stacked: true, // Affichage de plusieurs bus qui ont la même destination et même arrêt
+                colorDefault : "white",  
+                colorByDst : [["Quinconces","#FF00FF"]]  
+                }
+    },
 # MMM-BdxBus
