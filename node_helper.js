@@ -237,7 +237,7 @@ module.exports = NodeHelper.create({
     var stationName = "";
     textHtml = textHtmlOrigin;
     // Extract the content.
-    var position = textHtml.indexOf("<div class=\"header-sd-default header_title\">", 0);
+    var position = textHtml.indexOf("<div class=\"header-sd-default\">", 0);
     textHtml = textHtml.substr(position);
     position = textHtml.indexOf("</div>", 0);
     position = position  + 6; // Add 6 for "</div>" element size.
