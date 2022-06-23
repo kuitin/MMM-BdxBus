@@ -6,7 +6,7 @@
   "dependencies": {
     "font-awesome": "latest",
     "https": "^1.0.0",
-    "jsdom": "^15.0.0",
+    "jsdom": "^16.5.0",
     "request": "^2.88.0",
     "soap": "^0.24.0",
     "xml-js": "^1.6.2",
