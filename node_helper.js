@@ -52,7 +52,7 @@ module.exports = NodeHelper.create({
             console.log(self.name + ': BdxB Connection started');
 
             self.readBuses(payload, buses);
-            setInterval(function () {
+           setInterval(function () {
                 self.readBuses(payload, buses);
             }, 60000);
         }
@@ -134,6 +134,7 @@ module.exports = NodeHelper.create({
         var self = this;
         // Get web page contents.
         var xmlhttp = new XMLHttpRequest();
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
         xmlhttp.onreadystatechange = function() 
         {
             err = 0;
